@@ -76,11 +76,29 @@ class LockScreenApp(QWidget):
         input_layout.setAlignment(Qt.AlignCenter)
         layout.addLayout(input_layout)
 
+        # 创建按钮布局
+        button_layout = QHBoxLayout()
+
         # 创建开始按钮
         self.start_button = QPushButton("开始倒计时")
         self.start_button.clicked.connect(self.startCountdown)
         self.start_button.setFixedHeight(50)
-        layout.addWidget(self.start_button)
+        button_layout.addWidget(self.start_button)
+
+        # 创建停止按钮
+        self.stop_button = QPushButton("停止计时")
+        self.stop_button.clicked.connect(self.stopCountdown)
+        self.stop_button.setFixedHeight(50)
+        self.stop_button.setEnabled(False)
+        button_layout.addWidget(self.stop_button)
+
+        # 创建重置按钮
+        self.reset_button = QPushButton("重置")
+        self.reset_button.clicked.connect(self.resetState)
+        self.reset_button.setFixedHeight(50)
+        button_layout.addWidget(self.reset_button)
+
+        layout.addLayout(button_layout)
 
         # 创建倒计时显示标签
         self.countdown_label = QLabel()
@@ -104,8 +122,11 @@ class LockScreenApp(QWidget):
     def resetState(self):
         self.remaining_time = 0
         self.start_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
         self.start_button.setText("开始倒计时")
         self.countdown_label.setText("00:00:00")
+        self.minute_input.setEnabled(True)
+        self.second_input.setEnabled(True)
         if hasattr(self, 'floating_countdown'):
             self.floating_countdown.close()
 
@@ -115,7 +136,18 @@ class LockScreenApp(QWidget):
         self.remaining_time = minutes * 60 + seconds
         self.timer.start(1000)  # 每秒更新一次
         self.start_button.setEnabled(False)
+        self.stop_button.setEnabled(True)
         self.start_button.setText("倒计时进行中...")
+        self.minute_input.setEnabled(False)
+        self.second_input.setEnabled(False)
+
+    def stopCountdown(self):
+        self.timer.stop()
+        self.start_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+        self.start_button.setText("继续倒计时")
+        if hasattr(self, 'floating_countdown'):
+            self.floating_countdown.close()
 
     def updateCountdown(self):
         self.remaining_time -= 1
