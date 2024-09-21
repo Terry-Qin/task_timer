@@ -1,0 +1,29 @@
+# PyInstaller
+dist/
+build/
+*.spec
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Windows
+*.exe
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+# IDE specific files (如果您使用 PyCharm 或 VS Code，可以取消注释相应的行)
+# .idea/
+# .vscode/
+
+# 虚拟环境（如果您使用虚拟环境，可以取消注释）
+# venv/
+# env/
+
+# 其他可能的临时文件
+*.bak
+*.swp
+*.swo
