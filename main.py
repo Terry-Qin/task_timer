@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton, QDesktopWidget
 from PyQt5.QtCore import QTimer, Qt, QPoint
-from PyQt5.QtGui import QFont, QPalette, QColor
+from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
 import ctypes
 
 class LockScreenApp(QWidget):
@@ -16,39 +16,42 @@ class LockScreenApp(QWidget):
     def initUI(self):
         self.setStyleSheet("""
             QWidget {
-                background-color: #f0f0f0;
+                background-color: #FFE5E5;
+                font-family: 'Comic Sans MS', cursive;
                 font-size: 16px;
             }
             QPushButton {
-                background-color: #4CAF50;
-                color: white;
+                background-color: #FF9999;
+                color: #FFFFFF;
                 padding: 10px;
-                border: none;
-                border-radius: 5px;
+                border: 2px solid #FF7777;
+                border-radius: 15px;
                 font-size: 18px;
             }
             QPushButton:hover {
-                background-color: #45a049;
+                background-color: #FF7777;
             }
             QPushButton:disabled {
-                background-color: #cccccc;
+                background-color: #FFCCCC;
+                border: 2px solid #FFAAAA;
             }
             QLabel {
-                color: #333333;
+                color: #FF5555;
             }
             QSpinBox {
                 padding: 5px;
-                border: 1px solid #cccccc;
-                border-radius: 3px;
+                border: 2px solid #FF9999;
+                border-radius: 10px;
+                background-color: #FFFFFF;
             }
         """)
 
         layout = QVBoxLayout()
         layout.setSpacing(20)
 
-        title_label = QLabel("Windows自动锁屏")
+        title_label = QLabel("可爱的锁屏小助手")
         title_label.setAlignment(Qt.AlignCenter)
-        title_label.setFont(QFont("Arial", 24, QFont.Bold))
+        title_label.setFont(QFont("Comic Sans MS", 24, QFont.Bold))
         layout.addWidget(title_label)
 
         # 创建输入区域
@@ -82,11 +85,12 @@ class LockScreenApp(QWidget):
         # 创建倒计时显示标签
         self.countdown_label = QLabel()
         self.countdown_label.setAlignment(Qt.AlignCenter)
-        self.countdown_label.setFont(QFont("Arial", 36, QFont.Bold))
+        self.countdown_label.setFont(QFont("Comic Sans MS", 36, QFont.Bold))
         layout.addWidget(self.countdown_label)
 
         self.setLayout(layout)
-        self.setWindowTitle('Windows自动锁屏')
+        self.setWindowTitle('可爱的锁屏小助手')
+        self.setWindowIcon(QIcon('lock_icon.png'))  # 请确保你有一个可爱的锁屏图标
         self.resize(400, 300)
         self.center()
         self.show()
@@ -152,20 +156,31 @@ class FloatingCountdown(QWidget):
         self.label = QLabel()
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet("""
+            font-family: 'Comic Sans MS', cursive;
             font-size: 48px;
-            color: red;
-            background-color: rgba(0, 0, 0, 150);
-            border-radius: 10px;
+            color: #FF5555;
+            background-color: rgba(255, 229, 229, 200);
+            border: 3px solid #FF9999;
+            border-radius: 20px;
             padding: 10px;
         """)
         layout.addWidget(self.label)
         self.setLayout(layout)
 
-        self.setGeometry(0, 0, 200, 100)
-        self.move(QDesktopWidget().availableGeometry().topRight() - QPoint(220, -20))
+        self.setGeometry(0, 0, 300, 100)
+        self.moveToTopCenter()
+
+    def moveToTopCenter(self):
+        screen = QDesktopWidget().screenNumber(QDesktopWidget().cursor().pos())
+        screen_geometry = QDesktopWidget().screenGeometry(screen)
+        size = self.geometry()
+        self.move(screen_geometry.left() + (screen_geometry.width() - size.width()) // 2,
+                  screen_geometry.top() + 50)  # 50是距离顶部的距离，可以根据需要调整
 
     def setTime(self, time):
-        self.label.setText(f"锁屏倒计时: {time}秒")
+        self.label.setText(f"还剩 {time} 秒就要锁屏啦！")
+        self.adjustSize()  # 根据文本内容调整窗口大小
+        self.moveToTopCenter()  # 重新定位窗口
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
