@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton, QDesktopWidget
-from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtCore import QTimer, Qt, QPoint
 from PyQt5.QtGui import QFont, QPalette, QColor
 import ctypes
 
@@ -11,6 +11,7 @@ class LockScreenApp(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateCountdown)
         self.remaining_time = 0
+        self.resetState()
 
     def initUI(self):
         self.setStyleSheet("""
@@ -53,7 +54,7 @@ class LockScreenApp(QWidget):
         # 创建输入区域
         input_layout = QHBoxLayout()
         self.time_input = QSpinBox()
-        self.time_input.setRange(1, 1440)  # 1分钟到24小时
+        self.time_input.setRange(1, 1440)  # 1��钟到24小时
         self.time_input.setFixedHeight(40)
         self.time_input.setFixedWidth(100)
         input_layout.addWidget(QLabel("锁屏时间（分钟）:"))
@@ -85,6 +86,14 @@ class LockScreenApp(QWidget):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
+    def resetState(self):
+        self.remaining_time = 0
+        self.start_button.setEnabled(True)
+        self.start_button.setText("开始倒计时")
+        self.countdown_label.setText("00:00")
+        if hasattr(self, 'floating_countdown'):
+            self.floating_countdown.close()
+
     def startCountdown(self):
         minutes = self.time_input.value()
         self.remaining_time = minutes * 60
@@ -99,37 +108,51 @@ class LockScreenApp(QWidget):
 
         if self.remaining_time <= 0:
             self.timer.stop()
-            if hasattr(self, 'full_screen_countdown'):
-                self.full_screen_countdown.close()
+            if hasattr(self, 'floating_countdown'):
+                self.floating_countdown.close()
             self.lockScreen()
+            self.resetState()
         elif self.remaining_time <= 10:
             self.showFullScreenCountdown()
-            self.full_screen_countdown.setTime(self.remaining_time)
-        
+            self.floating_countdown.setTime(self.remaining_time)
+
     def showFullScreenCountdown(self):
-        if not hasattr(self, 'full_screen_countdown'):
-            self.full_screen_countdown = FullScreenCountdown()
-        self.full_screen_countdown.setTime(self.remaining_time)
-        self.full_screen_countdown.show()
+        if not hasattr(self, 'floating_countdown'):
+            self.floating_countdown = FloatingCountdown()
+        self.floating_countdown.setTime(self.remaining_time)
+        self.floating_countdown.show()
 
     def lockScreen(self):
         ctypes.windll.user32.LockWorkStation()
 
-class FullScreenCountdown(QWidget):
+    def closeEvent(self, event):
+        self.resetState()
+        super().closeEvent(event)
+
+class FloatingCountdown(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
-        self.showFullScreen()
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+        self.setAttribute(Qt.WA_TranslucentBackground)
         
         layout = QVBoxLayout()
         self.label = QLabel()
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet("font-size: 200px; color: red;")
+        self.label.setStyleSheet("""
+            font-size: 48px;
+            color: red;
+            background-color: rgba(0, 0, 0, 150);
+            border-radius: 10px;
+            padding: 10px;
+        """)
         layout.addWidget(self.label)
         self.setLayout(layout)
 
+        self.setGeometry(0, 0, 200, 100)
+        self.move(QDesktopWidget().availableGeometry().topRight() - QPoint(220, -20))
+
     def setTime(self, time):
-        self.label.setText(str(time))
+        self.label.setText(f"锁屏倒计时: {time}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
