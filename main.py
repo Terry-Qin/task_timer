@@ -1,24 +1,78 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton, QDesktopWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton, QDesktopWidget, QMainWindow
 from PyQt5.QtCore import QTimer, Qt, QPoint
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon
 import ctypes
 
-class LockScreenApp(QWidget):
+class CustomTitleBar(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        layout = QHBoxLayout()
+        layout.setContentsMargins(10, 0, 0, 0)
+        
+        layout.addStretch()
+        
+        button_style = """
+            QPushButton {
+                background-color: #FF9999;
+                color: #FFFFFF;
+                border: none;
+                font-size: 18px;
+                padding: 5px;
+                width: 30px;
+                height: 30px;
+            }
+            QPushButton:hover {
+                background-color: #FF7777;
+            }
+        """
+        
+        # 添加最小化按钮
+        minimize_button = QPushButton("—")
+        minimize_button.setStyleSheet(button_style)
+        minimize_button.clicked.connect(self.parent.showMinimized)
+        layout.addWidget(minimize_button)
+        
+        # 保留原有的关闭按钮
+        close_button = QPushButton("×")
+        close_button.setStyleSheet(button_style.replace("#FF7777", "#FF5555"))
+        close_button.clicked.connect(self.parent.close)
+        layout.addWidget(close_button)
+        
+        self.setLayout(layout)
+        self.setFixedHeight(30)
+        self.setStyleSheet("background-color: #FFE5E5; border-top-left-radius: 10px; border-top-right-radius: 10px;")
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.parent.moving = True
+            self.parent.offset = event.pos()
+
+    def mouseMoveEvent(self, event):
+        if self.parent.moving:
+            self.parent.move(event.globalPos() - self.parent.offset)
+
+    def mouseReleaseEvent(self, event):
+        self.parent.moving = False
+
+class LockScreenApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.moving = False
         self.initUI()
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.updateCountdown)
-        self.remaining_time = 0
-        self.resetState()
 
     def initUI(self):
-        self.setStyleSheet("""
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+
+        main_widget = QWidget()
+        main_widget.setStyleSheet("""
             QWidget {
                 background-color: #FFE5E5;
                 font-family: 'Comic Sans MS', cursive;
-                font-size: 16px;
+                font-size: 18px;
+                border-radius: 10px;
             }
             QPushButton {
                 background-color: #FF9999;
@@ -26,7 +80,8 @@ class LockScreenApp(QWidget):
                 padding: 10px;
                 border: 2px solid #FF7777;
                 border-radius: 15px;
-                font-size: 18px;
+                font-size: 20px;
+                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #FF7777;
@@ -37,36 +92,65 @@ class LockScreenApp(QWidget):
             }
             QLabel {
                 color: #FF5555;
+                font-weight: bold;
             }
             QSpinBox {
                 padding: 5px;
                 border: 2px solid #FF9999;
                 border-radius: 10px;
                 background-color: #FFFFFF;
+                font-weight: bold;
+                font-size: 18px;
             }
         """)
 
-        layout = QVBoxLayout()
-        layout.setSpacing(20)
+        layout = QVBoxLayout(main_widget)
+        layout.setSpacing(15)
+        layout.setContentsMargins(10, 0, 10, 10)  # 调整上边距为0
+
+        title_bar = CustomTitleBar(self)
+        layout.addWidget(title_bar)
+
+        # 创建一个新的标题容器
+        title_container = QWidget()
+        title_container.setStyleSheet("""
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FF9999, stop:1 #FFCCCC);
+            border-radius: 20px;
+            margin: 10px 0;
+            padding: 10px;
+        """)
+        title_layout = QVBoxLayout(title_container)
 
         title_label = QLabel("可爱的锁屏小助手")
         title_label.setAlignment(Qt.AlignCenter)
-        title_label.setFont(QFont("Comic Sans MS", 24, QFont.Bold))
-        layout.addWidget(title_label)
+        title_label.setFont(QFont("Comic Sans MS", 64, QFont.Bold))  # 调整字体大小
+        title_label.setStyleSheet("""
+            color: #FF3333;
+            text-shadow: 3px 3px 6px #FFFFFF;
+        """)
+        title_layout.addWidget(title_label)
+
+        subtitle_label = QLabel("让锁屏变得更有趣！")
+        subtitle_label.setAlignment(Qt.AlignCenter)
+        subtitle_label.setFont(QFont("Arial", 24, QFont.StyleItalic))  # 使用不同的字体和样式
+        subtitle_label.setStyleSheet("color: #FF5555;")
+        title_layout.addWidget(subtitle_label)
+
+        layout.addWidget(title_container)
 
         # 创建输入区域
         input_layout = QHBoxLayout()
         self.minute_input = QSpinBox()
-        self.minute_input.setRange(0, 1440)  # 0分钟到24小时
-        self.minute_input.setFixedHeight(40)
-        self.minute_input.setFixedWidth(100)
-        self.minute_input.setValue(1)  # 默认1分钟
+        self.minute_input.setRange(0, 1440)
+        self.minute_input.setFixedHeight(45)
+        self.minute_input.setFixedWidth(110)
+        self.minute_input.setValue(1)
         
         self.second_input = QSpinBox()
-        self.second_input.setRange(0, 59)  # 0到59秒
-        self.second_input.setFixedHeight(40)
-        self.second_input.setFixedWidth(100)
-        self.second_input.setValue(0)  # 默认0秒
+        self.second_input.setRange(0, 59)
+        self.second_input.setFixedHeight(45)
+        self.second_input.setFixedWidth(110)
+        self.second_input.setValue(0)
 
         input_layout.addWidget(QLabel("锁屏时间："))
         input_layout.addWidget(self.minute_input)
@@ -79,39 +163,40 @@ class LockScreenApp(QWidget):
         # 创建按钮布局
         button_layout = QHBoxLayout()
 
-        # 创建开始按钮
         self.start_button = QPushButton("开始倒计时")
         self.start_button.clicked.connect(self.startCountdown)
-        self.start_button.setFixedHeight(50)
+        self.start_button.setFixedHeight(55)
         button_layout.addWidget(self.start_button)
 
-        # 创建停止按钮
         self.stop_button = QPushButton("停止计时")
         self.stop_button.clicked.connect(self.stopCountdown)
-        self.stop_button.setFixedHeight(50)
+        self.stop_button.setFixedHeight(55)
         self.stop_button.setEnabled(False)
         button_layout.addWidget(self.stop_button)
 
-        # 创建重置按钮
         self.reset_button = QPushButton("重置")
         self.reset_button.clicked.connect(self.resetState)
-        self.reset_button.setFixedHeight(50)
+        self.reset_button.setFixedHeight(55)
         button_layout.addWidget(self.reset_button)
 
         layout.addLayout(button_layout)
 
-        # 创建倒计时显示标签
         self.countdown_label = QLabel()
         self.countdown_label.setAlignment(Qt.AlignCenter)
-        self.countdown_label.setFont(QFont("Comic Sans MS", 36, QFont.Bold))
+        self.countdown_label.setFont(QFont("Comic Sans MS", 42, QFont.Bold))
+        self.countdown_label.setStyleSheet("color: #FF3333; text-shadow: 2px 2px 4px #FFAAAA;")
         layout.addWidget(self.countdown_label)
 
-        self.setLayout(layout)
-        self.setWindowTitle('可爱的锁屏小助手')
-        self.setWindowIcon(QIcon('lock_icon.png'))  # 请确保你有一个可爱的锁屏图标
-        self.resize(400, 300)
+        self.setCentralWidget(main_widget)
+        self.setWindowTitle('可爱的锁屏助手')
+        self.setWindowIcon(QIcon('lock_icon.png'))
+        self.resize(500, 450)  # 调整窗口大小以适应更的标题
         self.center()
-        self.show()
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.updateCountdown)
+        self.remaining_time = 0
+        self.resetState()
 
     def center(self):
         qr = self.frameGeometry()
@@ -178,6 +263,18 @@ class LockScreenApp(QWidget):
         self.resetState()
         super().closeEvent(event)
 
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.moving = True
+            self.offset = event.pos()
+
+    def mouseMoveEvent(self, event):
+        if self.moving:
+            self.move(event.globalPos() - self.offset)
+
+    def mouseReleaseEvent(self, event):
+        self.moving = False
+
 class FloatingCountdown(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -189,17 +286,17 @@ class FloatingCountdown(QWidget):
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet("""
             font-family: 'Comic Sans MS', cursive;
-            font-size: 48px;
+            font-size: 54px;
             color: #FF5555;
             background-color: rgba(255, 229, 229, 200);
             border: 3px solid #FF9999;
             border-radius: 20px;
-            padding: 10px;
+            padding: 15px;
         """)
         layout.addWidget(self.label)
         self.setLayout(layout)
 
-        self.setGeometry(0, 0, 300, 100)
+        self.setGeometry(0, 0, 350, 120)
         self.moveToTopCenter()
 
     def moveToTopCenter(self):
@@ -217,4 +314,5 @@ class FloatingCountdown(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = LockScreenApp()
+    ex.show()
     sys.exit(app.exec_())
