@@ -53,12 +53,23 @@ class LockScreenApp(QWidget):
 
         # 创建输入区域
         input_layout = QHBoxLayout()
-        self.time_input = QSpinBox()
-        self.time_input.setRange(1, 1440)  # 1��钟到24小时
-        self.time_input.setFixedHeight(40)
-        self.time_input.setFixedWidth(100)
-        input_layout.addWidget(QLabel("锁屏时间（分钟）:"))
-        input_layout.addWidget(self.time_input)
+        self.minute_input = QSpinBox()
+        self.minute_input.setRange(0, 1440)  # 0分钟到24小时
+        self.minute_input.setFixedHeight(40)
+        self.minute_input.setFixedWidth(100)
+        self.minute_input.setValue(1)  # 默认1分钟
+        
+        self.second_input = QSpinBox()
+        self.second_input.setRange(0, 59)  # 0到59秒
+        self.second_input.setFixedHeight(40)
+        self.second_input.setFixedWidth(100)
+        self.second_input.setValue(0)  # 默认0秒
+
+        input_layout.addWidget(QLabel("锁屏时间："))
+        input_layout.addWidget(self.minute_input)
+        input_layout.addWidget(QLabel("分"))
+        input_layout.addWidget(self.second_input)
+        input_layout.addWidget(QLabel("秒"))
         input_layout.setAlignment(Qt.AlignCenter)
         layout.addLayout(input_layout)
 
@@ -90,21 +101,23 @@ class LockScreenApp(QWidget):
         self.remaining_time = 0
         self.start_button.setEnabled(True)
         self.start_button.setText("开始倒计时")
-        self.countdown_label.setText("00:00")
+        self.countdown_label.setText("00:00:00")
         if hasattr(self, 'floating_countdown'):
             self.floating_countdown.close()
 
     def startCountdown(self):
-        minutes = self.time_input.value()
-        self.remaining_time = minutes * 60
+        minutes = self.minute_input.value()
+        seconds = self.second_input.value()
+        self.remaining_time = minutes * 60 + seconds
         self.timer.start(1000)  # 每秒更新一次
         self.start_button.setEnabled(False)
         self.start_button.setText("倒计时进行中...")
 
     def updateCountdown(self):
         self.remaining_time -= 1
-        minutes, seconds = divmod(self.remaining_time, 60)
-        self.countdown_label.setText(f"{minutes:02d}:{seconds:02d}")
+        hours, remainder = divmod(self.remaining_time, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        self.countdown_label.setText(f"{hours:02d}:{minutes:02d}:{seconds:02d}")
 
         if self.remaining_time <= 0:
             self.timer.stop()
@@ -152,7 +165,7 @@ class FloatingCountdown(QWidget):
         self.move(QDesktopWidget().availableGeometry().topRight() - QPoint(220, -20))
 
     def setTime(self, time):
-        self.label.setText(f"锁屏倒计时: {time}")
+        self.label.setText(f"锁屏倒计时: {time}秒")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
